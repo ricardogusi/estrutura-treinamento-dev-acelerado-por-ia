@@ -9,7 +9,7 @@
   - Grupo inválido gera erro 400 com mensagem e details
 - _Requirements: RF-1, RF-6_
 
-[ ] 2. Normalização monetária e moeda
+[x] 2. Normalização monetária e moeda
 - Complexidade: medium
 - Risco: low
 - Passo 1: Converter strings monetárias (“1.234,56”/“1,234.56”) em número decimal

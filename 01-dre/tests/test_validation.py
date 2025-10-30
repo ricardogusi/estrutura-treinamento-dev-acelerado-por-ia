@@ -7,7 +7,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from dre_core.validation import DreValidationError, validate_schema  # noqa: E402
+from dre_core.validation import DreValidationError, normalize_payload, validate_schema  # noqa: E402
 
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1]
@@ -56,6 +56,46 @@ class ValidateSchemaTests(unittest.TestCase):
         self.assertIn("porConta[0].grupo", ctx.exception.details.get("path", ""))
         self.assertIn("grupo inválido", message.lower())
         self.assertIn("receita", ctx.exception.details.get("permitidos", []))
+
+
+class NormalizePayloadTests(unittest.TestCase):
+    def test_baseline_values_are_normalized(self) -> None:
+        payload = load_fixture("dre-baseline")
+        normalized = normalize_payload(payload)
+
+        self.assertEqual(normalized["moeda"], "BRL")
+        for entry in payload["porConta"]:
+            norm_entry = next(item for item in normalized["porConta"] if item["id"] == entry["id"])
+            self.assertIsInstance(norm_entry["valor"], (int, float))
+            self.assertEqual(norm_entry["grupo"], entry["grupo"].lower())
+
+    def test_string_currency_with_brazilian_format(self) -> None:
+        payload = load_fixture("dre-baseline")
+        payload["porConta"][0]["valor"] = "1.234,56"
+
+        normalized = normalize_payload(payload)
+        entry = next(item for item in normalized["porConta"] if item["id"] == payload["porConta"][0]["id"])
+        self.assertAlmostEqual(entry["valor"], 1234.56, places=2)
+
+    def test_group_sign_applied(self) -> None:
+        payload = load_fixture("dre-baseline")
+        payload["porConta"][0]["grupo"] = "RECEITA"
+        payload["porConta"][0]["valor"] = -500
+        payload["porConta"][1]["valor"] = "2.000,00"
+
+        normalized = normalize_payload(payload)
+        receita_entry = next(item for item in normalized["porConta"] if item["id"] == payload["porConta"][0]["id"])
+        deducao_entry = next(item for item in normalized["porConta"] if item["id"] == payload["porConta"][1]["id"])
+
+        self.assertGreater(receita_entry["valor"], 0)
+        self.assertLess(deducao_entry["valor"], 0)
+
+    def test_currency_code_enforced(self) -> None:
+        payload = load_fixture("dre-baseline")
+        payload["moeda"] = "brl"
+
+        normalized = normalize_payload(payload)
+        self.assertEqual(normalized["moeda"], "BRL")
 
 
 if __name__ == "__main__":  # pragma: no cover

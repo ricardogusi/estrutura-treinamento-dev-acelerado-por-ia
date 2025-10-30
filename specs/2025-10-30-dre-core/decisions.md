@@ -27,3 +27,10 @@
 - Resultados: Testes passam (`python3 -m unittest discover -s 01-dre/tests`). Task 1 marcada como concluída em `tasks.md`.
 - Riscos: Dependência de futuras normalizações (Tarefa 2) — função hoje retorna payload bruto; ajustes poderão ser necessários.
 - Confidence: 90% para Task 1 (escopo atendido, aguardando próximas tarefas para integração completa).
+
+## [2025-10-30] Execução Tarefa 2 — Normalização monetária e moeda
+- Contexto: Implementar normalização de valores monetários e moeda conforme Tarefa 2 (RF-2, RNF-1).
+- Ações: Ampliados testes `NormalizePayloadTests` cobrindo formatação brasileira, sinais por grupo e uppercase de moeda; implementado `normalize_payload` no módulo `dre_core.validation`, com parsing decimal resiliente e aplicação de sinais (receita positivo; deducao/custo/despesa/imposto negativo).
+- Resultados: suíte `python3 -m unittest discover -s 01-dre/tests` aprovada; Task 2 marcada como concluída.
+- Riscos: Conversão retorna `float`; etapas futuras podem optar por `Decimal` se necessário para maior precisão antes da serialização.
+- Confidence: 90% (normalização atende requisitos; ajustes posteriores podem ocorrer durante cálculo de totais/margens).

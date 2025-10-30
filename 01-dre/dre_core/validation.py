@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence
+from decimal import Decimal, InvalidOperation
+from typing import Any, Mapping, Sequence
 
 
 ALLOWED_GROUPS = {
@@ -67,6 +68,32 @@ def validate_schema(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         _validate_entry(entry, idx)
 
     return payload
+
+
+def normalize_payload(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    validated = validate_schema(payload)
+
+    moneda = validated["moeda"].strip().upper()
+    por_conta_normalized = []
+    for idx, entry in enumerate(validated["porConta"]):
+        grupo = entry["grupo"].strip().lower()
+        valor = _normalize_value(entry["valor"], grupo, idx)
+        por_conta_normalized.append(
+            {
+                "id": entry["id"].strip(),
+                "nome": entry["nome"].strip(),
+                "grupo": grupo,
+                "valor": valor,
+            }
+        )
+
+    return {
+        "schemaVersion": validated["schemaVersion"],
+        "periodo": validated["periodo"],
+        "moeda": moneda,
+        "totais": validated["totais"],
+        "porConta": por_conta_normalized,
+    }
 
 
 def _require_field(
@@ -133,3 +160,54 @@ def _validate_entry(entry: Any, index: int) -> None:
             "porConta.valor deve ser number ou string.",
             path=f"{path_prefix}.valor",
         )
+
+
+def _normalize_value(value: Any, group: str, index: int) -> float:
+    decimal_value = _to_decimal(value, index)
+    if group in {"receita"}:
+        decimal_value = abs(decimal_value)
+    elif group in {"deducao", "custo", "despesa", "imposto"}:
+        decimal_value = -abs(decimal_value)
+    return float(decimal_value)
+
+
+def _to_decimal(value: Any, index: int) -> Decimal:
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+    if isinstance(value, str):
+        cleaned = value.strip()
+        if not cleaned:
+            raise DreValidationError(
+                "porConta.valor não pode ser vazio.",
+                path=f"porConta[{index}].valor",
+            )
+        normalized = re.sub(r"[^0-9,\.-]", "", cleaned)
+        if not normalized or normalized in {"-", "+", ".", ","}:
+            raise DreValidationError(
+                "porConta.valor inválido.",
+                path=f"porConta[{index}].valor",
+            )
+        if "," in normalized and "." in normalized:
+            if normalized.rfind(",") > normalized.rfind("."):
+                normalized = normalized.replace(".", "")
+                normalized = normalized.replace(",", ".")
+            else:
+                normalized = normalized.replace(",", "")
+        elif "," in normalized:
+            normalized = normalized.replace(".", "")
+            normalized = normalized.replace(",", ".")
+        else:
+            normalized = normalized.replace(",", "")
+        try:
+            return Decimal(normalized)
+        except InvalidOperation as exc:
+            raise DreValidationError(
+                "porConta.valor inválido.",
+                path=f"porConta[{index}].valor",
+            ) from exc
+    raise DreValidationError(
+        "porConta.valor tipo não suportado.",
+        path=f"porConta[{index}].valor",
+    )
