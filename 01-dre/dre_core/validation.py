@@ -1,10 +1,12 @@
-"""Schema validation utilities for dre-core."""
+"""Core validation and processing utilities for dre-core."""
 
 from __future__ import annotations
 
+import json
 import re
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from typing import Any, Mapping, Sequence
+from pathlib import Path
+from typing import Any, Mapping, Optional, Sequence, Union
 
 
 ALLOWED_GROUPS = {
@@ -154,6 +156,51 @@ def compute_margins(totals: Mapping[str, Any]) -> Mapping[str, float]:
     }
 
 
+def process_dre(payload: Union[Mapping[str, Any], str, Path]) -> Mapping[str, Any]:
+    data = _load_payload(payload)
+    normalized = normalize_payload(data)
+    totals = compute_totals(normalized["porConta"])
+    margins = compute_margins(totals)
+
+    formatted_totals = {key: _format_currency(value) for key, value in totals.items()}
+    formatted_entries = [
+        {
+            "id": entry["id"],
+            "nome": entry["nome"],
+            "grupo": entry["grupo"],
+            "valor": _format_currency(entry["valor"]),
+        }
+        for entry in normalized["porConta"]
+    ]
+
+    return {
+        "schemaVersion": normalized["schemaVersion"],
+        "periodo": normalized["periodo"],
+        "moeda": normalized["moeda"],
+        "totais": formatted_totals,
+        "margens": margins,
+        "porConta": formatted_entries,
+    }
+
+
+def save_dre_core(
+    payload: Union[Mapping[str, Any], str, Path],
+    output_path: Optional[Union[str, Path]] = None,
+    *,
+    indent: int = 2,
+) -> Path:
+    processed = process_dre(payload)
+
+    if isinstance(payload, (str, Path)):
+        base_path = Path(payload)
+    else:
+        base_path = Path.cwd() / "dre.json"
+
+    target = Path(output_path) if output_path else base_path.with_name("dre_core.json")
+    target.write_text(json.dumps(processed, indent=indent, sort_keys=True))
+    return target
+
+
 def _require_field(
     payload: Mapping[str, Any],
     key: str,
@@ -236,6 +283,14 @@ def _quantize_ratio(value: Decimal) -> float:
     return float(quantized)
 
 
+def _format_currency(value: Any) -> Union[int, float]:
+    decimal_value = _total_to_decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    integral = decimal_value.to_integral_value(rounding=ROUND_HALF_UP)
+    if decimal_value == integral:
+        return int(integral)
+    return float(decimal_value)
+
+
 def _sum_group(entries: Sequence[Mapping[str, Any]], group: str) -> Decimal:
     total = Decimal("0")
     for entry in entries:
@@ -268,6 +323,20 @@ def _total_to_decimal(value: Any) -> Decimal:
     if isinstance(value, Decimal):
         return value
     return Decimal(str(value))
+
+
+def _load_payload(payload: Union[Mapping[str, Any], str, Path]) -> Mapping[str, Any]:
+    if isinstance(payload, Mapping):
+        return payload
+
+    path = Path(payload)
+    if not path.exists():
+        raise DreValidationError(f"Arquivo não encontrado: {path}")
+
+    try:
+        return json.loads(path.read_text())
+    except json.JSONDecodeError as exc:
+        raise DreValidationError("JSON inválido fornecido.") from exc
 
 
 def _to_decimal(value: Any, index: int) -> Decimal:

@@ -1,5 +1,6 @@
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from dre_core.validation import (
     validate_schema,
     compute_totals,
     compute_margins,
+    process_dre,
+    save_dre_core,
 )  # noqa: E402
 
 
@@ -165,6 +168,45 @@ class ComputeMarginsTests(unittest.TestCase):
         self.assertEqual(margins["margemBruta"], 0.0)
         self.assertEqual(margins["margemOperacional"], 0.0)
         self.assertEqual(margins["margemLiquida"], 0.0)
+
+
+class ProcessDreTests(unittest.TestCase):
+    def test_process_dre_outputs_expected_structure(self) -> None:
+        payload = load_fixture("dre-baseline")
+        processed = process_dre(payload)
+
+        self.assertEqual(processed["schemaVersion"], payload["schemaVersion"])
+        self.assertEqual(processed["periodo"], payload["periodo"])
+        self.assertEqual(processed["moeda"], "BRL")
+
+        expected_totals = payload["totais"]
+        for key, expected_value in expected_totals.items():
+            self.assertEqual(processed["totais"][key], expected_value)
+
+        self.assertAlmostEqual(processed["margens"]["margemBruta"], 0.5556, places=4)
+        self.assertAlmostEqual(processed["margens"]["margemOperacional"], 0.2778, places=4)
+        self.assertAlmostEqual(processed["margens"]["margemLiquida"], 0.2044, places=4)
+
+        for entry in processed["porConta"]:
+            self.assertIsInstance(entry["valor"], (int, float))
+            self.assertEqual(entry["grupo"], entry["grupo"].lower())
+
+    def test_save_dre_core_creates_file_with_standard_name(self) -> None:
+        payload = load_fixture("dre-baseline")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dre_path = Path(tmpdir) / "dre.json"
+            dre_path.write_text(json.dumps(payload))
+
+            output_path = save_dre_core(dre_path)
+            self.assertEqual(output_path.name, "dre_core.json")
+            self.assertTrue(output_path.exists())
+
+            saved = json.loads(output_path.read_text())
+            self.assertEqual(saved["periodo"], payload["periodo"])
+            self.assertAlmostEqual(saved["margens"]["margemBruta"], 0.5556, places=4)
+            for key, expected_value in payload["totais"].items():
+                self.assertEqual(saved["totais"][key], expected_value)
 
 
 if __name__ == "__main__":  # pragma: no cover

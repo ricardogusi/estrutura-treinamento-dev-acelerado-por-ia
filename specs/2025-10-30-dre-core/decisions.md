@@ -48,3 +48,10 @@
 - Resultados: Suíte `python3 -m unittest discover -s 01-dre/tests` (13 testes) passando; margens baseline batendo (0.5556, 0.2778, 0.2044).
 - Riscos: Margens retornadas como float pós-quantização; manter consistência na serialização para evitar perdas futuramente.
 - Confidence: 91% (cálculo estável; observar impactos quando serialização for implementada).
+
+## [2025-10-30] Execução Tarefa 5 — Serialização padronizada
+- Contexto: Consolidar pipeline completo produzindo `dre_core.json` padrão com totais recalculados, margens e dados normalizados (RF-5, RNF-1, RNF-3).
+- Ações: Adicionados testes (`ProcessDreTests`) validando estrutura retornada e gravação em arquivo temporário; implementados `process_dre` e `save_dre_core` orquestrando normalização, totais, margens, formatação de moeda (2 casas) e margens (4 casas), além de salvamento default `dre_core.json`.
+- Resultados: `python3 -m unittest discover -s 01-dre/tests` (15 testes) passando; serialização gera valores idênticos aos esperados nas amostras.
+- Riscos: Saída utiliza floats para valores não inteiros após quantização; precisa alinhar com consumidores se exigirem strings formatadas.
+- Confidence: 92% (pipeline pronto para Task 6 – erros claros já implementados nas etapas anteriores).

@@ -40,7 +40,7 @@
   - Margens coerentes com os totais
 - _Requirements: RF-4, RNF-1_
 
-[ ] 5. Serialização de saída (dre_core.json)
+[x] 5. Serialização de saída (dre_core.json)
 - Complexidade: low
 - Risco: low
 - Passo 1: Montar estrutura padronizada com `totais`, `margens` e `porConta` normalizado
