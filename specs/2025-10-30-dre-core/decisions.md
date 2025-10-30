@@ -62,3 +62,10 @@
 - Resultados: `python3 -m unittest discover -s 01-dre/tests` (19 testes) todos verdes; mensagens de erro incluem `path` e mantêm status 400.
 - Riscos: Mensagens permanecem simples; se consumidores desejarem internacionalização ou códigos específicos por causa, futura extensão pode ser necessária.
 - Confidence: 93% (cobertura completa de cenários críticos de erro; dependências consolidadas).
+
+## [2025-10-30] Execução Tarefa 7 — Testes com amostras
+- Contexto: Validar pipeline completo contra as três amostras oficiais (RF-7, RNF-2).
+- Ações: Criada suíte `IntegrationSamplesTests` que processa `dre-baseline`, `dre-otimista` e `dre-pessimista`, comparando `totais`, `margens` e estrutura de `porConta` com os esperados.
+- Resultados: `python3 -m unittest discover -s 01-dre/tests` (20 testes) aprovado, confirmando consistência entre amostras e saída padrão.
+- Riscos: Nenhum adicional identificado; cobertura satisfatória para cenários fornecidos.
+- Confidence: 94% (pipeline completo e validado).

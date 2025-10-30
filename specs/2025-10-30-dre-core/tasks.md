@@ -59,7 +59,7 @@
   - Inputs ruins retornam 400 com causa explícita
 - _Requirements: RF-6_
 
-[ ] 7. Testes com amostras (baseline/otimista/pessimista)
+[x] 7. Testes com amostras (baseline/otimista/pessimista)
 - Complexidade: medium
 - Risco: low
 - Passo 1: Executar processamento das três amostras em `01-dre/`

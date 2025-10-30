@@ -249,5 +249,30 @@ class DreValidationErrorTests(unittest.TestCase):
         self.assertEqual(ctx.exception.details.get("path"), "moeda")
 
 
+class IntegrationSamplesTests(unittest.TestCase):
+    def test_all_samples_produce_expected_totals_and_margins(self) -> None:
+        samples = ["baseline", "otimista", "pessimista"]
+
+        for sample in samples:
+            payload = load_fixture(f"dre-{sample}")
+            processed = process_dre(payload)
+
+            self.assertEqual(processed["totais"], payload["totais"])
+            expected_margins = compute_margins(payload["totais"])
+            for key, expected_value in expected_margins.items():
+                self.assertAlmostEqual(
+                    processed["margens"][key],
+                    expected_value,
+                    places=4,
+                    msg=f"Margem divergente {key} em {sample}",
+                )
+
+            self.assertEqual(len(processed["porConta"]), len(payload["porConta"]))
+            self.assertTrue(
+                all(isinstance(entry["valor"], (int, float)) for entry in processed["porConta"]),
+                f"Valores não numéricos em {sample}",
+            )
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
