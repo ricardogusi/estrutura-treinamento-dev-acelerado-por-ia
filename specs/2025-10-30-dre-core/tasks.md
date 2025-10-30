@@ -50,7 +50,7 @@
   - Arquivo gerado com chaves e formatos definidos
 - _Requirements: RF-5, RNF-1, RNF-3_
 
-[ ] 6. Tratamento de erros claros (400)
+[x] 6. Tratamento de erros claros (400)
 - Complexidade: low
 - Risco: low
 - Passo 1: Implementar exceção de validação com `status_code=400`

@@ -55,3 +55,10 @@
 - Resultados: `python3 -m unittest discover -s 01-dre/tests` (15 testes) passando; serialização gera valores idênticos aos esperados nas amostras.
 - Riscos: Saída utiliza floats para valores não inteiros após quantização; precisa alinhar com consumidores se exigirem strings formatadas.
 - Confidence: 92% (pipeline pronto para Task 6 – erros claros já implementados nas etapas anteriores).
+
+## [2025-10-30] Execução Tarefa 6 — Erros claros (400)
+- Contexto: Garantir mensagens claras, `status_code=400` e `details.path` para entradas inválidas (RF-6).
+- Ações: Novos testes (`ProcessDreTests` e `DreValidationErrorTests`) cobrindo grupo inválido, arquivo inexistente, JSON inválido e verificação explícita de `status_code`; ajustes em `DreValidationError` e `_load_payload` para incluir `status_code` e `path` nas exceções.
+- Resultados: `python3 -m unittest discover -s 01-dre/tests` (19 testes) todos verdes; mensagens de erro incluem `path` e mantêm status 400.
+- Riscos: Mensagens permanecem simples; se consumidores desejarem internacionalização ou códigos específicos por causa, futura extensão pode ser necessária.
+- Confidence: 93% (cobertura completa de cenários críticos de erro; dependências consolidadas).

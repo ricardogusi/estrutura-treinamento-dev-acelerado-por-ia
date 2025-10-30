@@ -208,6 +208,46 @@ class ProcessDreTests(unittest.TestCase):
             for key, expected_value in payload["totais"].items():
                 self.assertEqual(saved["totais"][key], expected_value)
 
+    def test_process_dre_invalid_group_returns_400(self) -> None:
+        payload = load_fixture("dre-baseline")
+        payload["porConta"][0]["grupo"] = "INVALIDO"
+
+        with self.assertRaises(DreValidationError) as ctx:
+            process_dre(payload)
+
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("grupo", ctx.exception.details.get("path", ""))
+
+    def test_process_dre_file_not_found(self) -> None:
+        with self.assertRaises(DreValidationError) as ctx:
+            process_dre("/tmp/inexistente.json")
+
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("/tmp/inexistente.json", ctx.exception.details.get("path", ""))
+
+    def test_process_dre_invalid_json_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dre_path = Path(tmpdir) / "dre.json"
+            dre_path.write_text("{invalid")
+
+            with self.assertRaises(DreValidationError) as ctx:
+                process_dre(dre_path)
+
+            self.assertEqual(ctx.exception.status_code, 400)
+            self.assertIn(str(dre_path), ctx.exception.details.get("path", ""))
+
+
+class DreValidationErrorTests(unittest.TestCase):
+    def test_status_code_and_path_are_exposed(self) -> None:
+        payload = load_fixture("dre-baseline")
+        payload.pop("moeda")
+
+        with self.assertRaises(DreValidationError) as ctx:
+            validate_schema(payload)
+
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertEqual(ctx.exception.details.get("path"), "moeda")
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

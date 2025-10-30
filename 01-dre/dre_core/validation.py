@@ -32,6 +32,7 @@ class DreValidationError(ValueError):
         if path and "path" not in extra:
             extra["path"] = path
         self.details = extra
+        self.status_code = 400
 
 
 def validate_schema(payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -331,12 +332,12 @@ def _load_payload(payload: Union[Mapping[str, Any], str, Path]) -> Mapping[str, 
 
     path = Path(payload)
     if not path.exists():
-        raise DreValidationError(f"Arquivo não encontrado: {path}")
+        raise DreValidationError(f"Arquivo não encontrado: {path}", path=str(path))
 
     try:
         return json.loads(path.read_text())
     except json.JSONDecodeError as exc:
-        raise DreValidationError("JSON inválido fornecido.") from exc
+        raise DreValidationError("JSON inválido fornecido.", path=str(path)) from exc
 
 
 def _to_decimal(value: Any, index: int) -> Decimal:
