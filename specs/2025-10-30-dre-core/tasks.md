@@ -31,7 +31,7 @@
   - Idem para otimista e pessimista
 - _Requirements: RF-3, RNF-2_
 
-[ ] 4. Cálculo de margens (bruta/operacional/líquida)
+[x] 4. Cálculo de margens (bruta/operacional/líquida)
 - Complexidade: low
 - Risco: low
 - Passo 1: Implementar divisões com proteção a divisor zero

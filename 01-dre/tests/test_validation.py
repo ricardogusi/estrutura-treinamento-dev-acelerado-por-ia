@@ -12,6 +12,7 @@ from dre_core.validation import (
     normalize_payload,
     validate_schema,
     compute_totals,
+    compute_margins,
 )  # noqa: E402
 
 
@@ -139,6 +140,31 @@ class ComputeTotalsTests(unittest.TestCase):
             totals["resultadoAntesIR"] - load_fixture("dre-baseline")["totais"]["impostoRenda"],
             places=2,
         )
+
+
+class ComputeMarginsTests(unittest.TestCase):
+    def test_baseline_margins(self) -> None:
+        payload = normalize_payload(load_fixture("dre-baseline"))
+        totals = compute_totals(payload["porConta"])
+        margins = compute_margins(totals)
+
+        self.assertAlmostEqual(margins["margemBruta"], 0.5556, places=4)
+        self.assertAlmostEqual(margins["margemOperacional"], 0.2778, places=4)
+        self.assertAlmostEqual(margins["margemLiquida"], 0.2044, places=4)
+
+    def test_zero_revenue_returns_zero_margins(self) -> None:
+        totals = {
+            "receitaBruta": 0,
+            "receitaLiquida": 0,
+            "lucroBruto": 1000,
+            "resultadoOperacional": 500,
+            "resultadoLiquido": 200,
+        }
+
+        margins = compute_margins(totals)
+        self.assertEqual(margins["margemBruta"], 0.0)
+        self.assertEqual(margins["margemOperacional"], 0.0)
+        self.assertEqual(margins["margemLiquida"], 0.0)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Mapping, Sequence
 
 
@@ -134,6 +134,26 @@ def compute_totals(entries: Sequence[Mapping[str, Any]]) -> Mapping[str, float]:
     }
 
 
+def compute_margins(totals: Mapping[str, Any]) -> Mapping[str, float]:
+    receita_liquida = _total_to_decimal(totals.get("receitaLiquida", 0))
+    receita_bruta = _total_to_decimal(totals.get("receitaBruta", 0))
+    lucro_bruto = _total_to_decimal(totals.get("lucroBruto", 0))
+    resultado_operacional = _total_to_decimal(totals.get("resultadoOperacional", 0))
+    resultado_liquido = _total_to_decimal(totals.get("resultadoLiquido", 0))
+
+    base_bruta = receita_liquida if receita_liquida > 0 else receita_bruta
+
+    margem_bruta = _safe_ratio(lucro_bruto, base_bruta)
+    margem_operacional = _safe_ratio(resultado_operacional, receita_liquida)
+    margem_liquida = _safe_ratio(resultado_liquido, receita_liquida)
+
+    return {
+        "margemBruta": _quantize_ratio(margem_bruta),
+        "margemOperacional": _quantize_ratio(margem_operacional),
+        "margemLiquida": _quantize_ratio(margem_liquida),
+    }
+
+
 def _require_field(
     payload: Mapping[str, Any],
     key: str,
@@ -209,6 +229,13 @@ def _normalize_value(value: Any, group: str, index: int) -> float:
     return float(decimal_value)
 
 
+def _quantize_ratio(value: Decimal) -> float:
+    if value.is_nan():  # pragma: no cover - defensive, should not occur
+        return 0.0
+    quantized = value.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+    return float(quantized)
+
+
 def _sum_group(entries: Sequence[Mapping[str, Any]], group: str) -> Decimal:
     total = Decimal("0")
     for entry in entries:
@@ -229,6 +256,18 @@ def _sum_operational(entries: Sequence[Mapping[str, Any]], *, marketing: bool) -
             continue
         total += abs(Decimal(str(entry["valor"])))
     return total
+
+
+def _safe_ratio(numerator: Decimal, denominator: Decimal) -> Decimal:
+    if denominator == 0:
+        return Decimal("0")
+    return numerator / denominator
+
+
+def _total_to_decimal(value: Any) -> Decimal:
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
 
 
 def _to_decimal(value: Any, index: int) -> Decimal:

@@ -41,3 +41,10 @@
 - Resultados: `python3 -m unittest discover -s 01-dre/tests` passou (11 testes); validação manual dos três cenários retorna totais idênticos aos esperados.
 - Riscos: Totais retornam `float`; manter atenção na etapa de serialização para garantir arredondamento conforme RNF-1.
 - Confidence: 91% (fluxo confirmado com amostras; dependerá de integração com margens/serialização para completar pipeline).
+
+## [2025-10-30] Execução Tarefa 4 — Cálculo de margens
+- Contexto: Calcular margens bruta, operacional e líquida com arredondamento e proteção a divisões por zero (RF-4, RNF-1).
+- Ações: Novos testes `ComputeMarginsTests` cobrindo cenário baseline e receita zero; implementado `compute_margins` com `Decimal`, fallback para receita bruta quando receita líquida ≤ 0 e quantização half-up em 4 casas; helpers `_safe_ratio`, `_quantize_ratio`, `_total_to_decimal` adicionados.
+- Resultados: Suíte `python3 -m unittest discover -s 01-dre/tests` (13 testes) passando; margens baseline batendo (0.5556, 0.2778, 0.2044).
+- Riscos: Margens retornadas como float pós-quantização; manter consistência na serialização para evitar perdas futuramente.
+- Confidence: 91% (cálculo estável; observar impactos quando serialização for implementada).
