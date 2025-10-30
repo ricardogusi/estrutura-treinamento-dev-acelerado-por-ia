@@ -7,7 +7,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from dre_core.validation import DreValidationError, normalize_payload, validate_schema  # noqa: E402
+from dre_core.validation import (
+    DreValidationError,
+    normalize_payload,
+    validate_schema,
+    compute_totals,
+)  # noqa: E402
 
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1]
@@ -96,6 +101,44 @@ class NormalizePayloadTests(unittest.TestCase):
 
         normalized = normalize_payload(payload)
         self.assertEqual(normalized["moeda"], "BRL")
+
+
+class ComputeTotalsTests(unittest.TestCase):
+    def test_totals_match_baseline(self) -> None:
+        payload = normalize_payload(load_fixture("dre-baseline"))
+        totals = compute_totals(payload["porConta"])
+        expected = load_fixture("dre-baseline")["totais"]
+
+        for key, value in expected.items():
+            self.assertAlmostEqual(totals[key], value, places=2, msg=f"Mismatch on {key}")
+
+    def test_marketing_and_admin_split(self) -> None:
+        payload = {
+            "schemaVersion": 1,
+            "periodo": "2025-01",
+            "moeda": "BRL",
+            "totais": {},
+            "porConta": [
+                {"id": "E1", "nome": "Marketing Ads", "grupo": "despesa", "valor": "-1.200,00"},
+                {"id": "E2", "nome": "Salários administrativos", "grupo": "despesa", "valor": -8000},
+            ],
+        }
+        normalized = normalize_payload(payload)
+        totals = compute_totals(normalized["porConta"])
+
+        self.assertAlmostEqual(totals["despesasMarketing"], 1200)
+        self.assertAlmostEqual(totals["despesasGeraisAdm"], 8000)
+        self.assertAlmostEqual(totals["despesasOperacionais"], 9200)
+
+    def test_other_income_flow(self) -> None:
+        payload = normalize_payload(load_fixture("dre-baseline"))
+        totals = compute_totals(payload["porConta"])
+
+        self.assertAlmostEqual(
+            totals["resultadoLiquido"],
+            totals["resultadoAntesIR"] - load_fixture("dre-baseline")["totais"]["impostoRenda"],
+            places=2,
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover

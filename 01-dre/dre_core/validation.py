@@ -96,6 +96,44 @@ def normalize_payload(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     }
 
 
+def compute_totals(entries: Sequence[Mapping[str, Any]]) -> Mapping[str, float]:
+    receita = _sum_group(entries, "receita")
+    deducao = _sum_group(entries, "deducao")
+    custo = _sum_group(entries, "custo")
+    outras = _sum_group(entries, "outras")
+    imposto = _sum_group(entries, "imposto")
+
+    desp_marketing = _sum_operational(entries, marketing=True)
+    desp_gerais = _sum_operational(entries, marketing=False)
+    despesas_operacionais = desp_marketing + desp_gerais
+
+    receita_bruta = receita
+    deducoes = abs(deducao)
+    receita_liquida = receita + deducao
+    custo_produtos = abs(custo)
+    lucro_bruto = receita_liquida + custo
+    resultado_operacional = lucro_bruto - despesas_operacionais
+    resultado_antes_ir = resultado_operacional + outras
+    imposto_renda = abs(imposto)
+    resultado_liquido = resultado_antes_ir + imposto
+
+    return {
+        "receitaBruta": float(receita_bruta),
+        "deducoes": float(deducoes),
+        "receitaLiquida": float(receita_liquida),
+        "custoProdutosServicos": float(custo_produtos),
+        "lucroBruto": float(lucro_bruto),
+        "despesasMarketing": float(desp_marketing),
+        "despesasGeraisAdm": float(desp_gerais),
+        "despesasOperacionais": float(despesas_operacionais),
+        "resultadoOperacional": float(resultado_operacional),
+        "outrasReceitasDespesas": float(outras),
+        "resultadoAntesIR": float(resultado_antes_ir),
+        "impostoRenda": float(imposto_renda),
+        "resultadoLiquido": float(resultado_liquido),
+    }
+
+
 def _require_field(
     payload: Mapping[str, Any],
     key: str,
@@ -169,6 +207,28 @@ def _normalize_value(value: Any, group: str, index: int) -> float:
     elif group in {"deducao", "custo", "despesa", "imposto"}:
         decimal_value = -abs(decimal_value)
     return float(decimal_value)
+
+
+def _sum_group(entries: Sequence[Mapping[str, Any]], group: str) -> Decimal:
+    total = Decimal("0")
+    for entry in entries:
+        if entry["grupo"] == group:
+            total += Decimal(str(entry["valor"]))
+    return total
+
+
+def _sum_operational(entries: Sequence[Mapping[str, Any]], *, marketing: bool) -> Decimal:
+    keywords = {"marketing", "ads", "publicidade", "propaganda"}
+    total = Decimal("0")
+    for entry in entries:
+        if entry["grupo"] != "despesa":
+            continue
+        name = entry["nome"].lower()
+        is_marketing = any(keyword in name for keyword in keywords)
+        if is_marketing != marketing:
+            continue
+        total += abs(Decimal(str(entry["valor"])))
+    return total
 
 
 def _to_decimal(value: Any, index: int) -> Decimal:

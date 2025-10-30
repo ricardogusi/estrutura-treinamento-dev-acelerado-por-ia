@@ -34,3 +34,10 @@
 - Resultados: suíte `python3 -m unittest discover -s 01-dre/tests` aprovada; Task 2 marcada como concluída.
 - Riscos: Conversão retorna `float`; etapas futuras podem optar por `Decimal` se necessário para maior precisão antes da serialização.
 - Confidence: 90% (normalização atende requisitos; ajustes posteriores podem ocorrer durante cálculo de totais/margens).
+
+## [2025-10-30] Execução Tarefa 3 — Recalcular totais
+- Contexto: Recalcular todos os totais apenas a partir de `porConta`, incluindo split de despesas marketing vs gerais (RF-3, RNF-2).
+- Ações: Estendidos testes (`ComputeTotalsTests`) comparando com `dre-baseline/otimista/pessimista` e cobrindo classificação de despesas; implementado `compute_totals` em `dre_core.validation` com somatórios por grupo e funções auxiliares (`_sum_group`, `_sum_operational`).
+- Resultados: `python3 -m unittest discover -s 01-dre/tests` passou (11 testes); validação manual dos três cenários retorna totais idênticos aos esperados.
+- Riscos: Totais retornam `float`; manter atenção na etapa de serialização para garantir arredondamento conforme RNF-1.
+- Confidence: 91% (fluxo confirmado com amostras; dependerá de integração com margens/serialização para completar pipeline).

@@ -20,7 +20,7 @@
   - Sinais aplicados conforme grupo
 - _Requirements: RF-2, RNF-1_
 
-[ ] 3. Recalcular totais a partir de porConta
+[x] 3. Recalcular totais a partir de porConta
 - Complexidade: medium
 - Risco: medium
 - Passo 1: Implementar somatórios por grupo conforme regras
